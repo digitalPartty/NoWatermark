@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>在线移除 AI 图片水印 - 免费即时工具 | NoWatermark</title>
+  <meta name="description" content="免费在线工具，一键移除 AI 生成图片中的水印和标志。基于 Telea 与 Navier-Stokes 图像修复算法，全部在浏览器本地处理，保护您的隐私。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Cpath d='M9 20c3-6 5-9 7-9s4 3 7 9c-2 2-4 3-7 3s-5-1-7-3z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="#watermark-remover">
+      <svg class="logo-icon" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#6366f1"/><path d="M9 20c3-6 5-9 7-9s4 3 7 9c-2 2-4 3-7 3s-5-1-7-3z" fill="#fff"/></svg>
+      <span>NoWatermark</span>
+    </a>
+    <nav class="nav">
+      <a href="#watermark-remover">工具</a>
+      <a href="#features">功能特点</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badges">
+        <span class="badge">免费 100%</span>
+        <span class="badge">无需注册</span>
+        <span class="badge badge-accent">本地浏览器处理 · 保护隐私</span>
+      </div>
+      <h1>在线移除 AI 图片水印<span class="dot">.</span></h1>
+      <p class="hero-sub">免费在线工具，一键移除 AI 生成图片中的水印、Logo 与文字标志。<br>上传、涂抹水印，即时下载无水印图片。</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#watermark-remover">开始移除</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工具 -->
+  <section id="watermark-remover" class="tool-section">
+    <div class="container">
+      <div class="tool-card">
+
+        <!-- 上传视图 -->
+        <div id="uploadView">
+          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="上传图片">
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" hidden>
+            <svg class="dz-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l10 12h-6v14h-8V18h-6L24 6z" fill="currentColor"/><path d="M8 38h32v4H8z" fill="currentColor" opacity=".5"/></svg>
+            <p class="dz-title">点击上传或拖放图片到此处</p>
+            <p class="dz-sub">支持 PNG / JPEG / WebP，最大 10MB<br>也可以按 Ctrl + V 粘贴剪贴板中的图片</p>
+          </div>
+        </div>
+
+        <!-- 编辑视图 -->
+        <div id="editorView" hidden>
+          <div class="controls">
+            <div class="control-group">
+              <span class="control-label">算法</span>
+              <div class="segmented" role="radiogroup" aria-label="选择修复算法">
+                <label><input type="radio" name="algo" value="telea" checked><span>Telea（快速）</span></label>
+                <label><input type="radio" name="algo" value="ns"><span>Navier-Stokes（大面积）</span></label>
+              </div>
+            </div>
+            <div class="control-group">
+              <span class="control-label">笔刷 <b id="brushVal">24</b> px</span>
+              <input type="range" id="brushSize" min="4" max="80" value="24" step="2">
+            </div>
+            <div class="control-group">
+              <span class="control-label">修复半径 <b id="radiusVal">3</b></span>
+              <input type="range" id="radius" min="1" max="12" value="3">
+            </div>
+          </div>
+
+          <div class="canvas-wrap" id="canvasWrap">
+            <div class="canvas-inner">
+              <canvas id="baseCanvas"></canvas>
+              <canvas id="maskCanvas"></canvas>
+            </div>
+            <div class="canvas-hint">在水印上按住鼠标（或手指）涂抹红色标记区域</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-ghost" id="btnUndo" title="撤销上一笔 (Ctrl+Z)">撤销</button>
+            <button class="btn btn-ghost" id="btnClear">清除标记</button>
+            <button class="btn btn-primary" id="btnProcess">移除水印</button>
+            <button class="btn btn-primary btn-outline" id="btnDownload" disabled>下载图片</button>
+            <button class="btn btn-ghost" id="btnReset">换一张</button>
+          </div>
+          <p class="status" id="status">提示：涂抹要移除的水印区域后，点击「移除水印」。</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 原理 -->
+  <section id="principle" class="section">
+    <div class="container">
+      <h2 class="section-title">水印移除原理</h2>
+      <p class="section-sub">基于经典图像修复（Inpainting）算法，用周围真实像素自然重建被水印遮挡的内容。</p>
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="card-num">1</div>
+          <h3>上传图片</h3>
+          <p>拖放或点击上传 PNG / JPEG / WebP 图片，图片只在你的浏览器中处理，不会上传到任何服务器。</p>
+        </div>
+        <div class="card">
+          <div class="card-num">2</div>
+          <h3>标记水印</h3>
+          <p>用笔刷在水印、Logo 或任何不需要的元素上涂抹，标记出需要重建的区域。</p>
+        </div>
+        <div class="card">
+          <div class="card-num">3</div>
+          <h3>算法修复</h3>
+          <p>Telea 快速行进法或 Navier-Stokes 流体力学方法分析周围像素，沿图像结构自然地重建被遮挡内容。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 优势 -->
+  <section id="features" class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">为什么选择 NoWatermark</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>隐私保护</h3>
+          <p>所有处理都在浏览器本地完成，图片永远不会离开你的设备，确保完全隐私。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l4-6 3 4 5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>双算法引擎</h3>
+          <p>Telea 算法快速精确适合文字水印；Navier-Stokes 算法平滑自然适合大面积区域。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>即时处理</h3>
+          <p>纯原生 JavaScript 实现，无需 WebAssembly 与服务器，小水印通常 1 秒内完成。</p>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>100%</b><span>本地处理</span></div>
+        <div class="stat"><b>2</b><span>算法引擎 Telea / Navier-Stokes</span></div>
+        <div class="stat"><b>~1 秒</b><span>平均处理时间</span></div>
+        <div class="stat"><b>0</b><span>图片上传 · 无水印次数限制</span></div>
+      </div>
+    </div>
+  </section>
+
+  
+
+  <!-- FAQ -->
+  <section id="faq" class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">常见问题</h2>
+      <details class="faq-item" open>
+        <summary>Telea 和 Navier-Stokes 算法有什么区别？</summary>
+        <p>Telea 基于快速行进法（FMM），按到边界距离由外向内逐像素加权重建，速度快，适合小面积水印和文字；Navier-Stokes 把图像类比成流体，沿等照度线传播平滑信息并求解拉普拉斯方程，大面积规则背景（天空、墙面、渐变）效果更平滑自然，耗时略长。</p>
+      </details>
+      <details class="faq-item">
+        <summary>图片会被上传到服务器吗？</summary>
+        <p>不会。全部算法在你的浏览器中本地运行，断网也能使用。本站只提供静态页面文件。</p>
+      </details>
+      <details class="faq-item">
+        <summary>支持哪些图片格式？有大小限制吗？</summary>
+        <p>支持 PNG、JPEG、WebP，最大 10MB。超过 2048px 的长边会自动等比缩小以保证处理速度。</p>
+      </details>
+      <details class="faq-item">
+        <summary>哪些 AI 生成器的水印可以移除？</summary>
+        <p>适用于 Midjourney、DALL·E、Stable Diffusion、Gemini 等任何生成器输出的图片，可处理文字水印、Logo 与签名标记。也适用于普通图片中不需要的小元素。</p>
+      </details>
+      <details class="faq-item">
+        <summary>修复半径参数是什么意思？</summary>
+        <p>Telea 算法中每个待修复像素会参考半径范围内已知像素的加权平均。半径小则保留细节多，半径大则更平滑。默认 3 适合多数场景。</p>
+      </details>
+      <details class="faq-item">
+        <summary>移除 AI 水印合法吗？</summary>
+        <p>本工具仅供学习图像修复算法与处理自有素材使用。商业使用 AI 生成内容时，请遵守相关服务的条款与当地版权法规。</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>现在开始移除水印</h2>
+      <p>免费、即时、隐私优先。</p>
+      <a class="btn btn-primary" href="#watermark-remover">立即试用</a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span>NoWatermark</span>
+      <p>免费在线 AI 图片水印移除工具。基于 Telea 与 Navier-Stokes 图像修复算法，快速、安全、注重隐私。</p>
+    </div>
+    <div class="footer-col">
+      <h4>工具</h4>
+      <a href="#watermark-remover">水印移除</a>
+      <a href="#faq">常见问题</a>
+    </div>
+    <div class="footer-col">
+      <h4>支持</h4>
+      <a href="#faq">常见问题</a>
+      <a href="#features">功能特点</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <p>© 2026 NoWatermark · 图片处理全部在本地浏览器完成</p>
+  </div>
+</footer>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

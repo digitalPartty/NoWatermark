@@ -1,0 +1,17 @@
+{
+  "name": "nowatermark",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "纯前端 AI 图片水印移除工具（Telea / Navier-Stokes 修复算法），可部署到任意静态托管",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "vite": "^8.2.2",
+    "wrangler": "^4.0.0"
+  }
+}
