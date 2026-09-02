@@ -25,7 +25,7 @@ const statusEl = $('status');
 const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
 const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
-let strokes = []; // { size, points: [{x, y}] }
+let strokes = [];
 let painting = false;
 let lastPoint = null;
 
@@ -69,13 +69,9 @@ document.addEventListener('paste', (e) => {
   }
 });
 
-function fail(msg) {
-  setStatus(msg, 'err');
-}
-
 function loadFile(file) {
-  if (!file.type.startsWith('image/')) return fail('请选择图片文件（PNG / JPEG / WebP）');
-  if (file.size > MAX_FILE_SIZE) return fail('图片超过 10MB 限制');
+  if (!file.type.startsWith('image/')) return setStatus('请选择图片文件（PNG / JPEG / WebP）', 'err');
+  if (file.size > MAX_FILE_SIZE) return setStatus('图片超过 10MB 限制', 'err');
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -84,7 +80,7 @@ function loadFile(file) {
   };
   img.onerror = () => {
     URL.revokeObjectURL(url);
-    fail('图片读取失败，请换一张试试');
+    setStatus('图片读取失败，请换一张试试', 'err');
   };
   img.src = url;
 }
@@ -105,9 +101,7 @@ function openEditor(img) {
   btnDownload.disabled = true;
   uploadView.hidden = true;
   editorView.hidden = false;
-  setStatus(
-    `已加载 ${w}×${h} 图片，请涂抹要移除的水印区域。`
-  );
+  setStatus(`已加载 ${w}×${h} 图片，请涂抹要移除的水印区域。`);
 }
 
 /* ---------------- 涂抹遮罩 ---------------- */
@@ -146,8 +140,7 @@ maskCanvas.addEventListener('pointermove', (e) => {
 );
 
 function drawSegment(a, b, size) {
-  maskCtx.strokeStyle = '#ff4040';
-  maskCtx.fillStyle = '#ff4040';
+  maskCtx.strokeStyle = maskCtx.fillStyle = '#ff4040';
   maskCtx.lineWidth = size;
   maskCtx.lineCap = 'round';
   maskCtx.lineJoin = 'round';
@@ -207,12 +200,8 @@ radiusInput.addEventListener('input', () => (radiusVal.textContent = radiusInput
 
 /* ---------------- 处理 ---------------- */
 
-// 裁剪到遮罩包围盒附近再运行算法，大幅提速
 function processCrop(imageData, mask, w, h, radius, fn) {
-  let minX = w;
-  let minY = h;
-  let maxX = -1;
-  let maxY = -1;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (mask[y * w + x]) {
@@ -249,11 +238,9 @@ function processCrop(imageData, mask, w, h, radius, fn) {
 
   fn(sub, subMask, cw, ch, radius);
 
-  // 只回写被标记的像素
   for (let y = 0; y < ch; y++) {
     for (let x = 0; x < cw; x++) {
-      const m = subMask[y * cw + x];
-      if (!m) continue;
+      if (!subMask[y * cw + x]) continue;
       const src = (y * cw + x) * 4;
       const dst = ((y0 + y) * w + (x0 + x)) * 4;
       imageData.data[dst] = sub[src];
@@ -289,12 +276,11 @@ btnProcess.addEventListener('click', async () => {
   const useNS = document.querySelector('input[name="algo"]:checked').value === 'ns';
   const algo = useNS ? inpaintNS : inpaintTelea;
   const radius = +radiusInput.value;
-  const isLarge = count > 30000;
 
   [btnProcess, btnUndo, btnClear].forEach((b) => (b.disabled = true));
   setStatus('处理中…');
 
-  await new Promise((r) => setTimeout(r, 30)); // 让 UI 先刷新
+  await new Promise((r) => setTimeout(r, 30));
   const t0 = performance.now();
   let ok = false;
   try {
@@ -314,7 +300,7 @@ btnProcess.addEventListener('click', async () => {
   if (ok) {
     btnDownload.disabled = false;
     let msg = `完成！共修复 ${count} 个像素，用时 ${secs.toFixed(2)} 秒。可继续涂抹并重复处理，或点击下载。`;
-    if (!useNS && isLarge)
+    if (!useNS && count > 30000)
       msg += '（提示：大面积区域改用 Navier-Stokes 算法会更平滑）';
     setStatus(msg, 'ok');
   }
